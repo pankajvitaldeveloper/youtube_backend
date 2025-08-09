@@ -1,12 +1,18 @@
+import dotenv from "dotenv";
+dotenv.config({ quiet: true });
+
 import express from "express";
+import connection from "./config/db.js";
+
 const app = express();
-const port = process.env.port || 5000;
+const port = process.env.PORT || 5000;
 
-app.get('/',(req,res)=>{
-    res.send("api is working")
-})
+connection(); 
 
+app.get("/", (req, res) => {
+  res.send("API is working");
+});
 
-app.listen(port,(req,res)=>{
-    console.log(`Server is running port ${port}`)
-})
+app.listen(port, () => {
+  console.log(`✅ Server is running on port ${port}`);
+});
