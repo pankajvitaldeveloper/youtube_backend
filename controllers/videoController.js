@@ -1,11 +1,12 @@
 import Video from "../models/Video.js";
-
+// create video
 export const createVideo = async (req, res) => {
   const { title, thumbnailUrl, description, videoUrl, channelId } = req.body;
 
   try {
+    // insert in to Db
     const newVideo = await Video.create({
-      title,
+      title, 
       thumbnailUrl,
       description,
       videoUrl,
@@ -22,3 +23,62 @@ export const createVideo = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+
+
+//Get all video data from db
+export const getVideoAll = async (req, res) => {
+    try {
+        const videoAllData = await Video.find();
+        res.status(200).json({
+            message: "All Data Fetch Successfully",
+            videoAllData
+        });
+    } catch (err) {
+        console.error("fetch video all data error:", err);
+        res.status(500).json({
+            message: "Failed to fetch video data",
+            error: err.message
+        });
+    }
+};
+
+//Get video data By Id in db
+export const getVideoById = async (req, res) => {
+    try{
+        const videoById = await Video.findById(req.params.id);
+        if(!videoById){
+            return res.status(404).json({message:"Video Not Found"})
+        }
+        res.status(200).json({message:"fetch Data Video Successfully By Id", videoById})
+    }
+    catch(err){
+        console.log("fetch data video by id failed")
+        res.status(500).json({message:"Failed to fetch video data by Id",error:err.message})
+    }
+}
+
+// Get Video update By id in db
+export const updateVideoById = async (req,res) => {
+    try{
+        const update = await Video.findByIdAndUpdate(req.params.id, req.body, {new: true});
+        if(!update) return res.status(404).json({message:"Update id not found"});
+        res.status(200).json({message:"Update Successfully", update})
+    }
+    catch(err){
+        console.log("Update Failed")
+        res.status(500).json({message:"Update Failed",error: err.message})
+    }
+}
+
+// Delete Video By Id in Db
+export const deleteVideoById = async (req,res) => {
+    try{
+        const videoDelete = await Video.findByIdAndDelete(req.params.id);
+        if(!videoDelete) return res.status(404).json({message:"Delete id not found"})
+        res.status(200).json({message:"Deleted Successfully",videoDelete})
+    }
+    catch(err){
+        console.log("Delete Failed");
+        res.status(500).json({message:"Delete Failed Error"})
+    }
+}
