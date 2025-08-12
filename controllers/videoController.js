@@ -25,6 +25,8 @@ export const createVideo = async (req, res) => {
 };
 
 
+
+
 //Get all video data from db
 export const getVideoAll = async (req, res) => {
     try {
@@ -82,3 +84,61 @@ export const deleteVideoById = async (req,res) => {
         res.status(500).json({message:"Delete Failed Error"})
     }
 }
+
+
+// Video Get by category wise
+export const videoByCategory = async (req, res) => {
+    try {
+        const categoryName = req.params.category;
+
+        // Case-insensitive exact match for category
+        const videos = await Video.find({
+            category: { $regex: new RegExp(`^${categoryName}$`, "i") }
+        });
+
+        if (!videos || videos.length === 0) {
+            return res.status(404).json({ message: "No videos found for this category" });
+        }
+
+        res.status(200).json({
+            message: `Videos in ${categoryName} category fetched successfully`,
+            videos
+        });
+
+    } catch (err) {
+        console.error("Category fetch error:", err);
+        res.status(500).json({ message: "Server Error", error: err.message });
+    }
+};
+
+
+
+
+// youtube search bar all data fetch from db 
+export const searchVideos = async (req, res) => {
+    try {
+        const query = req.params.query;
+
+        const videos = await Video.find({
+            $or: [
+                { category: { $regex: query, $options: "i" } },
+                { title: { $regex: query, $options: "i" } },
+                { channelId: { $regex: query, $options: "i" } }
+            ]
+        });
+
+        if (videos.length === 0) {
+            return res.status(404).json({ message: "No videos found" });
+        }
+
+        res.status(200).json({
+            message: "Search successful",
+            results: videos
+        });
+    } catch (err) {
+        console.error("Search failed", err);
+        res.status(500).json({ message: "Search failed", error: err.message });
+    }
+};
+
+
