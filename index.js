@@ -5,6 +5,7 @@ import express from "express";
 import connection from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js"
 import videoRoutes from "./routes/videoRoutes.js"
+import commentRoutes from "./routes/commentRoutes.js"
 
 
 const app = express();
@@ -23,6 +24,9 @@ app.use('/auth', authRoutes)
 
 //videoRouter
 app.use('/api', videoRoutes)
+
+//commentRouter
+app.use('/api', commentRoutes)
 
 app.listen(port, () => {
   console.log(`✅ Server is running on port ${port}`);

@@ -11,8 +11,7 @@ const videoSchema = new mongoose.Schema({
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     dislikes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     category: { type: String, default: "Uncategorized" },
-    uploadDate: { type: Date, default: Date.now },
-    comments: [{ type: mongoose.Schema.Types.ObjectId, ref: "Comment" }]
+    uploadDate: { type: Date, default: Date.now }
 });
 
 
