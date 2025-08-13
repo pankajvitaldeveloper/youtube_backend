@@ -1,28 +1,55 @@
 import Video from "../models/Video.js";
 // create video
+// export const createVideo = async (req, res) => {
+//   const { title, thumbnailUrl, description, videoUrl, channelId } = req.body;
+
+//   try {
+//     // insert in to Db
+//     const newVideo = await Video.create({
+//       title, 
+//       thumbnailUrl,
+//       description,
+//       videoUrl,
+//       channelId,
+//       uploader: req.user.userId // automatically from token
+//     });
+
+//     res.status(201).json({
+//       message: "New Video Uploaded Successfully",
+//       video: newVideo
+//     });
+//   } catch (err) {
+//     console.error("fetch video create error", err);
+//     res.status(500).json({ message: "Server Error" });
+//   }
+// };
+
 export const createVideo = async (req, res) => {
-  const { title, thumbnailUrl, description, videoUrl, channelId } = req.body;
-
   try {
-    // insert in to Db
-    const newVideo = await Video.create({
-      title, 
-      thumbnailUrl,
-      description,
-      videoUrl,
-      channelId,
-      uploader: req.user.userId // automatically from token
-    });
+    let videos = req.body;
 
+    // If single object, make it an array
+    if (!Array.isArray(videos)) {
+      videos = [videos];
+    }
+
+    // Add uploader from token or fallback for testing
+    videos = videos.map(v => ({
+      ...v,
+      uploader: req.user?.userId || "user01"
+    }));
+
+    const newVideos = await Video.insertMany(videos);
     res.status(201).json({
-      message: "New Video Uploaded Successfully",
-      video: newVideo
+      message: "Videos inserted successfully",
+      videos: newVideos
     });
   } catch (err) {
-    console.error("fetch video create error", err);
+    console.error("Video create error", err);
     res.status(500).json({ message: "Server Error" });
   }
 };
+
 
 
 
@@ -142,3 +169,92 @@ export const searchVideos = async (req, res) => {
 };
 
 
+// Increment Views
+export const incrementViews = async (req, res) => {
+  try {
+    const userId = req.user.userId; // From auth middleware
+    const video = await Video.findById(req.params.id);
+
+    if (!video) {
+      return res.status(404).json({ message: "Video not found" });
+    }
+
+    // Add unique view (one per user)
+    if (!video.viewers.includes(userId)) {
+      video.viewers.push(userId);
+      await video.save();
+    }
+
+    res.status(200).json({
+      message: "View count updated",
+      views: video.viewers.length // count based on array length
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Error updating views",
+      error: err.message
+    });
+  }
+};
+
+
+
+
+// Increment Likes
+// Clicking once → adds like/dislike.
+// Clicking again → removes it.
+// Switching between like/dislike updates counts correctly.
+export const toggleLike = async (req, res) => {
+  try {
+    const videoId = req.params.id;
+    const userId = req.user.userId; // from JWT auth middleware
+
+    const video = await Video.findById(videoId);
+    if (!video) {
+      return res.status(404).json({ message: "Video not found" });
+    }
+
+    const likedIndex = video.likes.indexOf(userId);
+    if (likedIndex > -1) {
+      // Already liked → remove like
+      video.likes.splice(likedIndex, 1);
+    } else {
+      // Add like and remove from dislikes
+      video.likes.push(userId);
+      video.dislikes = video.dislikes.filter(id => id.toString() !== userId);
+    }
+
+    await video.save();
+    res.json({ message: "Like status updated", likesCount: video.likes.length });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// Increment Dislikes
+export const toggleDislike = async (req, res) => {
+  try {
+    const videoId = req.params.id;
+    const userId = req.user.userId;
+
+    const video = await Video.findById(videoId);
+    if (!video) {
+      return res.status(404).json({ message: "Video not found" });
+    }
+
+    const dislikedIndex = video.dislikes.indexOf(userId);
+    if (dislikedIndex > -1) {
+      // Already disliked → remove dislike
+      video.dislikes.splice(dislikedIndex, 1);
+    } else {
+      // Add dislike and remove from likes
+      video.dislikes.push(userId);
+      video.likes = video.likes.filter(id => id.toString() !== userId);
+    }
+
+    await video.save();
+    res.json({ message: "Dislike status updated", dislikesCount: video.dislikes.length });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
