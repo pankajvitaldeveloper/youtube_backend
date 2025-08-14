@@ -4,8 +4,8 @@ import { auth } from "../middlewars/authMiddleware.js";
 import { createVideo, deleteVideoById, getVideoAll, getVideoById, updateVideoById, searchVideos, videoByCategory, incrementViews, toggleLike, toggleDislike } from "../controllers/videoController.js";
 
 router.post('/video',auth, createVideo);
-router.get('/video-all', auth, getVideoAll);
-router.get('/video/:id', auth, getVideoById)
+router.get('/video-all', getVideoAll);
+router.get('/video/:id', getVideoById)
 router.put('/video/:id', auth, updateVideoById)
 router.delete('/video/:id', auth, deleteVideoById)
 router.get('/videos/search/:query', auth, searchVideos);
