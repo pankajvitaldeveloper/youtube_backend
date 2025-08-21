@@ -105,18 +105,27 @@ export const getVideoAll = async (req, res) => {
 
 //Get video data By Id in db
 export const getVideoById = async (req, res) => {
-    try{
-        const videoById = await Video.findById(req.params.id);
-        if(!videoById){
-            return res.status(404).json({message:"Video Not Found"})
-        }
-        res.status(200).json({message:"fetch Data Video Successfully By Id", videoById})
+  try {
+    const videoById = await Video.findById(req.params.id)
+      .populate("channelId", "name profileImage subscribers description"); 
+
+    if (!videoById) {
+      return res.status(404).json({ message: "Video Not Found" });
     }
-    catch(err){
-        console.log("fetch data video by id failed")
-        res.status(500).json({message:"Failed to fetch video data by Id",error:err.message})
-    }
-}
+
+    res.status(200).json({
+      message: "Fetch Data Video Successfully By Id",
+      videoById
+    });
+  } catch (err) {
+    console.error("fetch data video by id failed", err);
+    res.status(500).json({
+      message: "Failed to fetch video data by Id",
+      error: err.message
+    });
+  }
+};
+
 
 // Get Video update By id in db
 export const updateVideoById = async (req,res) => {
