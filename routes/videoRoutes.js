@@ -8,8 +8,9 @@ router.get('/video-all', getVideoAll);
 router.get('/video/:id', getVideoById)
 router.put('/video/:id', auth, updateVideoById)
 router.delete('/video/:id', auth, deleteVideoById)
-router.get('/videos/search/:query', auth, searchVideos);
-router.get("/videos/category/:category", auth, videoByCategory);
+// router.get('/videos/search/:query', auth, searchVideos);
+router.get('/videos/search/:query', searchVideos);
+router.get("/videos/category/:category", videoByCategory);
 
 // views - likes - dislike api below
 router.put("/videos/:id/views", auth, incrementViews);
