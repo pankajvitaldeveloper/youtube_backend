@@ -1,4 +1,7 @@
+import mongoose from "mongoose";
 import Video from "../models/Video.js";
+import Channel from "../models/Channel.js";
+
 // create video
 // export const createVideo = async (req, res) => {
 //   const { title, thumbnailUrl, description, videoUrl, channelId } = req.body;
@@ -33,42 +36,71 @@ export const createVideo = async (req, res) => {
       videos = [videos];
     }
 
-    // Add uploader from token or fallback for testing
-    videos = videos.map(v => ({
-      ...v,
-      uploader: req.user?.userId || "user01"
-    }));
+    // Process each video
+    const processedVideos = await Promise.all(
+      videos.map(async (v) => {
+        let channelId;
 
-    const newVideos = await Video.insertMany(videos);
+        // case 1: channelId is a valid ObjectId string
+        if (mongoose.Types.ObjectId.isValid(v.channelId)) {
+          const channel = await Channel.findById(v.channelId);
+          if (!channel) {
+            throw new Error(`Channel not found for id: ${v.channelId}`);
+          }
+          channelId = v.channelId;
+        }
+        // case 2: channelId is actually a channel NAME (string like "Traversy Media")
+        else if (typeof v.channelId === "string") {
+          const channel = await Channel.findOne({ name: v.channelId });
+          if (!channel) {
+            throw new Error(`Channel not found with name: ${v.channelId}`);
+          }
+          channelId = channel._id;
+        }
+        else {
+          throw new Error("channelId is required (as ObjectId or channel name)");
+        }
+
+        return {
+          ...v,
+          channelId,
+          // uploader: req.user?.userId || "689b319768c3dbd3f1be86cf", // fallback
+          uploader: req.user?.userId, // fallback
+          uploadDate: new Date(),
+        };
+      })
+    );
+
+    const newVideos = await Video.insertMany(processedVideos);
+
     res.status(201).json({
       message: "Videos inserted successfully",
-      videos: newVideos
+      videos: newVideos,
     });
   } catch (err) {
     console.error("Video create error", err);
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({ message: err.message || "Server Error" });
   }
 };
 
-
-
-
-
-//Get all video data from db
+// GET ALL VIDEOS
 export const getVideoAll = async (req, res) => {
-    try {
-        const videoAllData = await Video.find();
-        res.status(200).json({
-            message: "All Data Fetch Successfully",
-            videoAllData
-        });
-    } catch (err) {
-        console.error("fetch video all data error:", err);
-        res.status(500).json({
-            message: "Failed to fetch video data",
-            error: err.message
-        });
-    }
+  try {
+    const videoAllData = await Video.find()
+      .populate("channelId", "name profileImage") // show only name & image
+      .sort({ uploadDate: -1 });
+
+    res.status(200).json({
+      message: "All Data Fetch Successfully",
+      videoAllData,videoAllData
+    });
+  } catch (err) {
+    console.error("fetch video all data error:", err);
+    res.status(500).json({
+      message: "Failed to fetch video data",
+      error: err.message,
+    });
+  }
 };
 
 //Get video data By Id in db
@@ -143,29 +175,37 @@ export const videoByCategory = async (req, res) => {
 
 // youtube search bar all data fetch from db 
 export const searchVideos = async (req, res) => {
-    try {
-        const query = req.params.query;
+  try {
+    const query = req.params.query;
 
-        const videos = await Video.find({
-            $or: [
-                { category: { $regex: query, $options: "i" } },
-                { title: { $regex: query, $options: "i" } },
-                { channelId: { $regex: query, $options: "i" } }
-            ]
-        });
+    // 🔍 Find channels that match query
+    const matchingChannels = await Channel.find({
+      name: { $regex: query, $options: "i" }
+    }).select("_id");
 
-        if (videos.length === 0) {
-            return res.status(404).json({ message: "No videos found" });
-        }
+    const channelIds = matchingChannels.map(c => c._id);
 
-        res.status(200).json({
-            message: "Search successful",
-            results: videos
-        });
-    } catch (err) {
-        console.error("Search failed", err);
-        res.status(500).json({ message: "Search failed", error: err.message });
+    // 🔍 Find videos where title/category matches OR channel is in channelIds
+    const videos = await Video.find({
+      $or: [
+        { category: { $regex: query, $options: "i" } },
+        { title: { $regex: query, $options: "i" } },
+        { channelId: { $in: channelIds } }
+      ]
+    }).populate("channelId", "name profileImage"); // ✅ fetch channel name & image
+
+    if (videos.length === 0) {
+      return res.status(404).json({ message: "No videos found" });
     }
+
+    res.status(200).json({
+      message: "Search successful",
+      results: videos
+    });
+  } catch (err) {
+    console.error("Search failed", err);
+    res.status(500).json({ message: "Search failed", error: err.message });
+  }
 };
 
 

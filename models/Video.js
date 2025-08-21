@@ -5,7 +5,8 @@ const videoSchema = new mongoose.Schema({
     thumbnailUrl: String,
     description: String,
     videoUrl: String,
-    channelId: String,
+    // ✅ Proper reference to Channel
+    channelId: { type: mongoose.Schema.Types.ObjectId, ref: "Channel"},
     uploader: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     viewers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
@@ -14,5 +15,4 @@ const videoSchema = new mongoose.Schema({
     uploadDate: { type: Date, default: Date.now }
 });
 
-
-export default mongoose.model('Video', videoSchema);
+export default mongoose.model("Video", videoSchema);
