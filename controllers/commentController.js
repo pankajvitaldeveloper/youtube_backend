@@ -2,28 +2,29 @@
 import Comment from "../models/Comment.js";
 
 // Add comment or reply
+// controllers/commentController.js
 export const addComment = async (req, res) => {
   try {
-    const { videoId, text, parentCommentId } = req.body;
+    const { videoId, text } = req.body;
     const userId = req.user.userId;
 
-    const newComment = new Comment({
+    const comment = await Comment.create({
       videoId,
-      userId,
       text,
-      parentCommentId: parentCommentId || null
+      userId,
     });
 
-    await newComment.save();
+    // ✅ Populate userId before returning
+    const populatedComment = await comment.populate("userId", "username profileImage");
 
-    res.status(201).json({
-      message: parentCommentId ? "Reply added" : "Comment added",
-      comment: newComment
-    });
+    res.status(201).json({ comment: populatedComment });
   } catch (err) {
-    res.status(500).json({ message: "Error adding comment", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Error adding comment", error: err.message });
   }
 };
+
 
 // Get all comments with replies for a video
 export const getCommentsWithReplies = async (req, res) => {
@@ -58,23 +59,31 @@ export const getCommentsWithReplies = async (req, res) => {
 };
 
 // Update comment (only if user is owner)
+// Update comment (only if user is owner)
 export const updateComment = async (req, res) => {
   try {
     const { id } = req.params;
     const { text } = req.body;
     const userId = req.user.userId;
 
-    const comment = await Comment.findOne({ _id: id, userId });
-    if (!comment) return res.status(404).json({ message: "Comment not found or unauthorized" });
+    const comment = await Comment.findOneAndUpdate(
+      { _id: id, userId },
+      { text },
+      { new: true }
+    ).populate("userId", "username profileImage"); // ✅ populate
 
-    comment.text = text;
-    await comment.save();
+    if (!comment) {
+      return res.status(404).json({ message: "Comment not found or unauthorized" });
+    }
 
-    res.status(200).json({ message: "Comment updated", comment });
+    res.json({ comment });
   } catch (err) {
-    res.status(500).json({ message: "Error updating comment", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Error updating comment", error: err.message });
   }
 };
+
 
 // Delete comment and its replies
 export const deleteComment = async (req, res) => {
@@ -83,18 +92,21 @@ export const deleteComment = async (req, res) => {
     const userId = req.user.userId;
 
     const comment = await Comment.findOne({ _id: id, userId });
-    if (!comment) return res.status(404).json({ message: "Comment not found or unauthorized" });
+    if (!comment) {
+      return res
+        .status(404)
+        .json({ message: "Comment not found or unauthorized" });
+    }
 
-    // Delete this comment and all replies
     await Comment.deleteMany({
-      $or: [
-        { _id: id },
-        { parentCommentId: id }
-      ]
+      $or: [{ _id: id }, { parentCommentId: id }],
     });
 
-    res.status(200).json({ message: "Comment and replies deleted" });
+    // ✅ Return id so client can update UI
+    res.status(200).json({ id, message: "Comment and replies deleted" });
   } catch (err) {
-    res.status(500).json({ message: "Error deleting comment", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Error deleting comment", error: err.message });
   }
 };

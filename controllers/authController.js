@@ -58,7 +58,7 @@ export const login = async (req, res) => {
         const token = jwt.sign(
             { userId: user._id },
             process.env.JWT_SECRET,
-            { expiresIn: "1h" }
+            { expiresIn: "1d" }
         );
 
         // Success
@@ -72,4 +72,22 @@ export const login = async (req, res) => {
         console.error("Login error", err);
         res.status(500).json({ message: "Server error" });
     }
+};
+
+
+export const getMe = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ message: "No token" });
+
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await User.findById(decoded.userId).select("username profileImage email");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json(user);
+  } catch (err) {
+    res.status(401).json({ message: "Invalid token" });
+  }
 };

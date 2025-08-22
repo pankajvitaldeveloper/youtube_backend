@@ -30,20 +30,45 @@ export const getChannelAll = async(req,res) => {
     }
 }
 
-export const getChannelInfo = async(req, res) => {
-    try{
-        const channel = await Channel.findById(req.params.id)
-        .populate("owner","username email")
-        .populate("subscribers","username")
-        if(!channel){
-            res.status(400).json({message:"Channel Not Found"})
-        }
-        res.status(200).json({message:"Fetch data successfully", channel})
+// export const getChannelInfo = async(req, res) => {
+//     try{
+//         const channel = await Channel.findById(req.params.id)
+//         .populate("owner","username email")
+//         .populate("subscribers","username")
+//         if(!channel){
+//             res.status(400).json({message:"Channel Not Found"})
+//         }
+//         res.status(200).json({message:"Fetch data successfully", channel})
+//     }
+//     catch(err){
+//         res.status(500).json({message:"Server Error GetchannelInfo"})
+//     }
+// }
+
+export const getChannelInfo = async (req, res) => {
+  try {
+    const channel = await Channel.findById(req.params.id)
+      .populate("owner", "username email")
+      .populate("subscribers", "username");
+
+    if (!channel) {
+      return res.status(404).json({ message: "Channel Not Found" });
     }
-    catch(err){
-        res.status(500).json({message:"Server Error GetchannelInfo"})
-    }
-}
+
+    // also fetch videos by channel
+    const videos = await Video.find({ channelId: channel._id }).select("title thumbnailUrl createdAt");
+
+    res.status(200).json({
+      message: "Fetch data successfully",
+      channel: {
+        ...channel.toObject(),
+        videos, // attach videos here
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server Error GetChannelInfo", error: err.message });
+  }
+};
 
 
 // Toggle subscription
