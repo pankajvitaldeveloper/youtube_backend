@@ -159,10 +159,10 @@ export const videoByCategory = async (req, res) => {
     try {
         const categoryName = req.params.category;
 
-        // Case-insensitive exact match for category
+        // Case-insensitive exact match for category with channel population
         const videos = await Video.find({
             category: { $regex: new RegExp(`^${categoryName}$`, "i") }
-        });
+        }).populate("channelId", "name profileImage"); // <-- populate channelId
 
         if (!videos || videos.length === 0) {
             return res.status(404).json({ message: "No videos found for this category" });
@@ -178,6 +178,7 @@ export const videoByCategory = async (req, res) => {
         res.status(500).json({ message: "Server Error", error: err.message });
     }
 };
+
 
 
 
